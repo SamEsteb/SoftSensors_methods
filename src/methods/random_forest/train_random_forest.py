@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.dates as mdates
 
 def configurar_logging(log_path: Path):
     """Configura el sistema de logging para el script del modelo."""
@@ -21,7 +22,7 @@ def configurar_logging(log_path: Path):
     )
 
 # VARIABLES GLOBALES DE CONFIGURACIÓN
-USAR_BEST_PARAMS = False
+USAR_BEST_PARAMS = True
 SHOW_PLOTS = False
 
 # --- Definición de Rutas ---
@@ -198,8 +199,13 @@ plt.xlabel('Fecha y Hora', fontsize=14)
 plt.ylabel('Turbidez', fontsize=14)
 plt.legend(fontsize=12)
 plt.grid(True, linestyle='--', alpha=0.6)
-# Se formatea el eje de fechas para mejor legibilidad.
+
+# Formatea el eje x para mostrar una etiqueta por día
+ax = plt.gca()
+ax.xaxis.set_major_locator(mdates.DayLocator())
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 plt.gcf().autofmt_xdate()
+
 plt.tight_layout()
 plt.savefig(results_dir / 'real_vs_predicho(time).png', dpi=150)
 logging.info(f"Gráfico de serie de tiempo guardado en '{results_dir / 'real_vs_predicho(time).png'}'")
