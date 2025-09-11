@@ -4,7 +4,7 @@ import json
 import logging
 from pathlib import Path
 from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestRegressor
+import xgboost as xgb  # Se importa la librería de XGBoost
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -24,18 +24,18 @@ def configurar_logging(log_path: Path):
     )
 
 # --- VARIABLES GLOBALES DE CONFIGURACIÓN ---
-USAR_BEST_PARAMS = False
-SHOW_PLOTS = True
+USAR_BEST_PARAMS = True
+SHOW_PLOTS = False
 
 # --- Definición de Rutas ---
-model_path = Path('src') / 'methods' / 'random_forest'
+model_path = Path('src') / 'methods' / 'xgboost'
 logs_path = model_path / "logs"
-log_name = "train_random_forest.log" if not USAR_BEST_PARAMS else "train_random_forest_best_params.log"
+log_name = "train_xgboost.log" if not USAR_BEST_PARAMS else "train_xgboost_best_params.log"
 log_file = logs_path / log_name
 
 # Se configura el logging antes de cualquier otra operación.
 configurar_logging(log_path=log_file)
-logging.info("===== INICIO DEL ENTRENAMIENTO DEL MODELO RANDOM FOREST =====")
+logging.info("===== INICIO DEL ENTRENAMIENTO DEL MODELO XGBOOST =====")
 
 if USAR_BEST_PARAMS:
     # Se obtienen los hiperparámetros optimizados desde el archivo JSON.
@@ -79,15 +79,11 @@ logging.info(f"Tamaño de X_train: {X_train.shape}")
 logging.info(f"Tamaño de X_test: {X_test.shape}")
 
 # --- 4. Creación y Entrenamiento del Modelo ---
-logging.info("Creando y entrenando el modelo RandomForestRegressor.")
+logging.info("Creando y entrenando el modelo XGBoost Regressor.")
 # Se usan los hiperparámetros optimizados si la variable global es True.
 if USAR_BEST_PARAMS:
-    modelo_rf = RandomForestRegressor(
-        n_estimators=best_params['n_estimators'],
-        max_depth=best_params['max_depth'],
-        min_samples_split=best_params['min_samples_split'],
-        min_samples_leaf=best_params['min_samples_leaf'],
-        max_features=best_params['max_features'],
+    modelo_xgb = xgb.XGBRegressor(
+        **best_params,
         random_state=42,
         n_jobs=-1
     )
@@ -95,17 +91,18 @@ if USAR_BEST_PARAMS:
     print(f"✅ Modelo creado con hiperparámetros optimizados: {best_params}")
 else:
     # Se usa un modelo con parámetros por defecto si no se usan los optimizados.
-    modelo_rf = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
-    logging.info(f"Modelo creado con hiperparámetros por defecto: {modelo_rf.get_params()}")
-    print(f"✅ Modelo creado con hiperparámetros por defecto: {modelo_rf.get_params()}")
+    modelo_xgb = xgb.XGBRegressor(random_state=42, n_jobs=-1)
+    logging.info(f"Modelo creado con hiperparámetros por defecto: {modelo_xgb.get_params()}")
+    print(f"✅ Modelo creado con hiperparámetros por defecto: {modelo_xgb.get_params()}")
+    
 # Se entrena el modelo.
-modelo_rf.fit(X_train, y_train)
+modelo_xgb.fit(X_train, y_train)
 logging.info("Modelo entrenado con éxito.")
-print("✅ Modelo Random Forest entrenado con éxito.")
+print("✅ Modelo XGBoost entrenado con éxito.")
 
 # --- 5. Predicción y Evaluación ---
 logging.info("Realizando predicciones sobre el conjunto de prueba.")
-predicciones = modelo_rf.predict(X_test)
+predicciones = modelo_xgb.predict(X_test)
 logging.info("Calculando métricas de rendimiento (MAE, RMSE, R²).")
 mae = mean_absolute_error(y_test, predicciones)
 rmse = np.sqrt(mean_squared_error(y_test, predicciones))
@@ -140,7 +137,7 @@ plt.figure(figsize=(10, 6))
 sns.set_theme(style="whitegrid", palette="pastel")
 sns.scatterplot(x=y_test, y=predicciones, alpha=0.7, s=10, edgecolor='k', color="#4F8DFD")
 plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', color="#FF6F61", linewidth=2, label="Predicción Perfecta")
-plt.title('Valor Real vs. Valor Predicho (Random Forest)', fontsize=18, fontweight='bold')
+plt.title('Valor Real vs. Valor Predicho (XGBoost)', fontsize=18, fontweight='bold')
 plt.xlabel('Valor Real de Turbidez', fontsize=14)
 plt.ylabel('Valor Predicho de Turbidez', fontsize=14)
 metrics_text = f"MAE: {mae:.2f}\nRMSE: {rmse:.2f}\nR²: {r2:.2f}"
@@ -163,7 +160,7 @@ plt.figure(figsize=(15, 7))
 sns.set_theme(style="whitegrid")
 plt.plot(results_df['Timestamp'], results_df['Real'], label='Valor Real', color='#1f77b4', linewidth=2)
 plt.plot(results_df['Timestamp'], results_df['Predicho'], label='Valor Predicho', color='#ff7f0e', linestyle='--', alpha=0.9)
-plt.title('Comparación de Turbidez Real vs. Predicha en el Tiempo (Random Forest)', fontsize=18, fontweight='bold')
+plt.title('Comparación de Turbidez Real vs. Predicha en el Tiempo (XGBoost)', fontsize=18, fontweight='bold')
 plt.xlabel('Fecha y Hora', fontsize=14)
 plt.ylabel('Turbidez', fontsize=14)
 plt.legend(fontsize=12)
@@ -180,7 +177,7 @@ if SHOW_PLOTS:
 
 # Gráfico 3: Importancia de Características
 logging.info("Generando gráfico de importancia de características.")
-importancias = modelo_rf.feature_importances_
+importancias = modelo_xgb.feature_importances_
 columnas = X.columns
 importancia_df = pd.DataFrame({'Característica': columnas, 'Importancia': importancias})
 importancia_df = importancia_df.sort_values(by='Importancia', ascending=True)
@@ -188,7 +185,7 @@ importancia_df = importancia_df.sort_values(by='Importancia', ascending=True)
 plt.figure(figsize=(12, 8))
 sns.set_theme(style="whitegrid")
 sns.barplot(x='Importancia', y='Característica', data=importancia_df, hue='Característica', palette="viridis", legend=False)
-plt.title('Importancia de cada Característica en el Modelo (Random Forest)', fontsize=18, fontweight='bold')
+plt.title('Importancia de cada Característica en el Modelo XGBoost', fontsize=18, fontweight='bold')
 plt.xlabel('Importancia Relativa', fontsize=14)
 plt.ylabel('Característica', fontsize=14)
 for i, v in enumerate(importancia_df['Importancia']):
