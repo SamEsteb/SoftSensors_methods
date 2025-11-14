@@ -1,16 +1,16 @@
 from pathlib import Path
 import pandas as pd
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import numpy as np
 
 # VARIABLES DE CONFIGURACIÓN
-TIPO_DATASET = 2  # 1: Water Quality, 2: SRU2
+TIPO_DATASET = 1  # 1: Water Quality, 2: SRU2
 ADD_FEATURES_TEMPORALES = True  # Agregar Features Temporales adicionales
 ADD_FEATURES_LAG = False  # Agregar Features Lag adicionales
 VIEW_GRAPH = True  # Visualizar gráfico de resultados
 SAVE_GRAPH = True  # Guardar gráfico de resultados
-VENTANA_DE_PREDICCION = 60  # Ventana de predicción (0 = sin ventana)
+VENTANA_DE_PREDICCION = 0  # Ventana de predicción (0 = sin ventana)
 
 # Definir rutas
 data_dir = Path("data")
@@ -24,7 +24,7 @@ elif TIPO_DATASET == 2:
     TARGET_COLUMN = "AI508"
 
 # Crear directorio para resultados si no existe
-model_dir = Path("src") / "methods" / "random_forest"
+model_dir = Path("src") / "methods" / "xgboost"
 results_dir = model_dir / f"results_{nombre_dataset}"
 results_dir.mkdir(parents=True, exist_ok=True)
 
@@ -103,11 +103,11 @@ y_train = df_train[Y_COLUMN]
 X_test = df_test[features]
 y_test = df_test[Y_COLUMN]
 
-# Entrenar el modelo
-print("Entrenando el modelo Random Forest Regressor...")
-modelo = RandomForestRegressor(n_estimators=200, random_state=None, n_jobs=-1, verbose=2)
+# Entrenar el modelo XGBoost
+print("Entrenando el modelo XGBoost Regressor...")
+modelo = XGBRegressor(n_estimators=200, objective='reg:squarederror', random_state=None, n_jobs=-1, verbosity=1)
 modelo.fit(X_train, y_train)
-print("Modelo entrenado con éxito.")
+print("Modelo XGBoost entrenado con éxito.")
 
 # Evaluar el modelo
 print("Evaluando el modelo...")
@@ -130,18 +130,18 @@ if VIEW_GRAPH:
     plt.xlabel('Timestamp')
     plt.ylabel(TARGET_COLUMN)
     if VENTANA_DE_PREDICCION > 0:
-        titulo_prediccion = f'Predicción de {TARGET_COLUMN} ({VENTANA_DE_PREDICCION} min. a futuro) usando RF'
+        titulo_prediccion = f'Predicción de {TARGET_COLUMN} ({VENTANA_DE_PREDICCION} min. a futuro) usando XGBoost'
     else:
-        titulo_prediccion = f'Predicción de {TARGET_COLUMN} (Actual) usando RF'
+        titulo_prediccion = f'Predicción de {TARGET_COLUMN} (Actual) usando XGBoost'
 
     plt.title(titulo_prediccion)
     plt.legend(title=f'Prediciendo t+{VENTANA_DE_PREDICCION} min\nRMSE={rmse:.3f}\nR2={r2:.3f}\nMAE={mae:.3f}')
     if SAVE_GRAPH:
-        plt.savefig(results_dir / f'rf_prediction_ventana({VENTANA_DE_PREDICCION})_Ftemp({ADD_FEATURES_TEMPORALES})_Flag({ADD_FEATURES_LAG}).png')
+        plt.savefig(results_dir / f'xgb_prediction_ventana({VENTANA_DE_PREDICCION})_Ftemp({ADD_FEATURES_TEMPORALES})_Flag({ADD_FEATURES_LAG}).png')
     else:
         plt.show()
 
-    # Importancia de las Features (proteger contra errores si el modelo no tiene importances)
+    # Importancia de las Features
     if hasattr(modelo, "feature_importances_"):
         importances = modelo.feature_importances_
         indices = np.argsort(importances)[::-1]
@@ -149,12 +149,12 @@ if VIEW_GRAPH:
         positions = range(n_features)
         labels = [X_train.columns[i] for i in indices]
         plt.figure(figsize=(12, 6))
-        plt.title("Importancia de las Features")
+        plt.title("Importancia de las Features - XGBoost")
         plt.bar(positions, importances[indices], align="center")
         plt.xticks(positions, labels, rotation=90)
         plt.tight_layout()
         if SAVE_GRAPH:
-            plt.savefig(results_dir / f'rf_feature_importance_ventana({VENTANA_DE_PREDICCION})_Ftemp({ADD_FEATURES_TEMPORALES})_Flag({ADD_FEATURES_LAG}).png')
+            plt.savefig(results_dir / f'xgb_feature_importance_ventana({VENTANA_DE_PREDICCION})_Ftemp({ADD_FEATURES_TEMPORALES})_Flag({ADD_FEATURES_LAG}).png')
         else:
             plt.show()
     else:
