@@ -1,0 +1,7 @@
+Model: HuberRegressor
+Dataset: SRU2
+Ventana Prediccion: 0
+------------------------------
+RMSE: 0.012287239637879315
+R2: 0.9226443774647906
+MAE: 0.004979115075578455

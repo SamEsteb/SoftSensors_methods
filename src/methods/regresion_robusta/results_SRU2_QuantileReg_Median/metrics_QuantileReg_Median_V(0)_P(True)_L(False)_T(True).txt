@@ -1,0 +1,7 @@
+Model: QuantileReg_Median
+Dataset: SRU2
+Ventana Prediccion: 0
+------------------------------
+RMSE: 0.2120016677064462
+R2: -22.028294952533937
+MAE: 0.20768117825700894
