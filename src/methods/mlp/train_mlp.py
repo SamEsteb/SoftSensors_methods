@@ -11,7 +11,7 @@ from pathlib import Path
 # ==========================================
 # 1. VARIABLES DE CONFIGURACIÓN Y RUTAS
 # ==========================================
-TIPO_DATASET = 2  # 1: Water Quality, 2: SRU2
+TIPO_DATASET = 1  # 1: Water Quality, 2: SRU2
 ADD_FEATURES_TEMPORALES = True  # Agregar Features Temporales adicionales
 ADD_FEATURES_LAG = False  # Agregar Features Lag adicionales
 VIEW_GRAPH = True  # Visualizar gráfico de resultados
